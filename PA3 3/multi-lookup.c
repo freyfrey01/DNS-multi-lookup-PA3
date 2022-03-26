@@ -153,7 +153,6 @@ int main(int argc, char*argv[])
     FILE* resolverLog=fopen(resolverLogName,"w");
 
     int current=0;
-    int count=0;
     pthread_mutex_t printMutex;
     pthread_mutex_init(&printMutex,NULL);       //synchronization for stdout
     array my_array;
