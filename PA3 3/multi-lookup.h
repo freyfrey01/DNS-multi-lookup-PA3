@@ -19,22 +19,18 @@ typedef struct
     array *queue;
     FILE **inputFiles;
     FILE *outputFile;
-    pthread_mutex_t* countMutex;
     pthread_mutex_t* inputFileMutex;
     pthread_mutex_t* outputMutex; 
     pthread_mutex_t* printMutex;
     int* inputNumber;  
     int* current;
-    int *count;
 }requesterThread;
 typedef struct 
 {
     array *queue;
     FILE *outputFile;
-    pthread_mutex_t* countMutex;
     pthread_mutex_t* outputMutex; 
     pthread_mutex_t* printMutex;
-    int* count;
 }resolverThread;
 
 
