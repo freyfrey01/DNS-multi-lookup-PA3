@@ -7,12 +7,6 @@
 #include <string.h>
 #include <stdio.h>
 #include <sys/time.h>
-void updateRequested(pthread_mutex_t* requestedMutex,requesterThread* thread)
-{
-    pthread_mutex_lock(requestedMutex);
-    *thread->count=*thread->count+1;
-    pthread_mutex_unlock(requestedMutex);
-}
 void* requester(void* requesterInfo)
 {
     requesterThread *thread=requesterInfo;
@@ -20,7 +14,6 @@ void* requester(void* requesterInfo)
     pthread_mutex_t *outputMutex=thread->outputMutex;
     pthread_mutex_t *printMutex=thread->printMutex;
     pthread_mutex_t *inputFileMutex=thread->inputFileMutex;
-    pthread_mutex_t *countMutex=thread->countMutex;
     FILE **inputs=thread->inputFiles;
     FILE *outputFile=thread->outputFile;
     int *numberInputs=thread->inputNumber;
@@ -44,7 +37,6 @@ void* requester(void* requesterInfo)
                 pthread_mutex_lock(outputMutex);
                 fprintf(outputFile,"%s\n",hostname);
                 pthread_mutex_unlock(outputMutex);
-                updateRequested(countMutex,thread);
             }
         }
         count++;
@@ -58,19 +50,12 @@ void* requester(void* requesterInfo)
     pthread_mutex_unlock(printMutex);
     return NULL;
 }
-void updateResolved(pthread_mutex_t* countMutex, resolverThread* thread)
-{
-    pthread_mutex_lock(countMutex);
-    *thread->count=*thread->count-1;
-    pthread_mutex_unlock(countMutex);
-}
 void* resolver(void* resolverInfo)
 {
     resolverThread *thread=resolverInfo;
     array *sharedBuffer=thread->queue;
     pthread_mutex_t *outputMutex=thread->outputMutex;
     pthread_mutex_t *printMutex=thread->printMutex;
-    pthread_mutex_t* countMutex=thread->countMutex;
     FILE *outputFile=thread->outputFile;
     pid_t tid=pthread_self();
     int count=0;
@@ -86,7 +71,7 @@ void* resolver(void* resolverInfo)
             free(hostname);
             array_put(sharedBuffer,"KILL");
             break;
-        } //stuck here
+        } 
         dns=dnslookup(hostname,ip,sizeof(ip));
         if(dns == -1)
         {
@@ -96,7 +81,6 @@ void* resolver(void* resolverInfo)
         {
             count++;
         }
-        updateResolved(countMutex,thread);
         pthread_mutex_lock(outputMutex);
         fprintf(outputFile,"%s, %s\n",hostname,ip);
         pthread_mutex_unlock(outputMutex);
@@ -171,18 +155,15 @@ int main(int argc, char*argv[])
     int current=0;
     int count=0;
     pthread_mutex_t printMutex;
-    pthread_mutex_t countMutex;
     pthread_mutex_init(&printMutex,NULL);       //synchronization for stdout
-    pthread_mutex_init(&countMutex,NULL);
     array my_array;
     array_init(&my_array);
     requesterThread rqThread;
     resolverThread rsThread;
 
-    pthread_mutex_t inputFileMutex,rqOutputMutex,requestedMutex;
+    pthread_mutex_t inputFileMutex,rqOutputMutex;
     pthread_mutex_init(&inputFileMutex,NULL);
     pthread_mutex_init(&rqOutputMutex,NULL);
-    pthread_mutex_init(&requestedMutex,NULL);
     rqThread.inputFileMutex=&inputFileMutex;
     rqThread.outputMutex=&rqOutputMutex;
     rqThread.queue=&my_array;
@@ -190,19 +171,14 @@ int main(int argc, char*argv[])
     rqThread.outputFile=requesterLog;
     rqThread.inputNumber=&inputs;
     rqThread.current=&current;
-    rqThread.count=&count;
-    rqThread.printMutex=&printMutex;
-    rqThread.countMutex=&countMutex;  //initalize threads info
+    rqThread.printMutex=&printMutex; //initalize threads info
 
-    pthread_mutex_t rsOutputMutex,resolvedMutex;
+    pthread_mutex_t rsOutputMutex;
     pthread_mutex_init(&rsOutputMutex,NULL);
-    pthread_mutex_init(&resolvedMutex,NULL);
     rsThread.outputMutex=&rsOutputMutex;
     rsThread.queue=&my_array;
     rsThread.outputFile=resolverLog;
-    rsThread.count=&count;
     rsThread.printMutex=&printMutex;
-    rsThread.countMutex=&countMutex;
 
     for(int i=0;i<numberRequesters;i++)     //create requester threads
     {
@@ -234,8 +210,7 @@ int main(int argc, char*argv[])
     pthread_mutex_destroy(&rqOutputMutex);
     pthread_mutex_destroy(&inputFileMutex);
     pthread_mutex_destroy(&rsOutputMutex);   
-    pthread_mutex_destroy(&printMutex);
-    pthread_mutex_destroy(&countMutex);            //destory mutex's allocated and free array's memory
+    pthread_mutex_destroy(&printMutex);         //destory mutex's allocated and free array's memory
     array_free(&my_array);
 
     gettimeofday(&end,NULL);
