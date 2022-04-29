@@ -151,7 +151,7 @@ void edf(ProcessSched numbers[],int size)
         tick++;
     }
 }
-void roundrobin(ProcessSched numbers[],int size)
+void roundrobin(ProcessSched numbers[],int size,int timeslice)
 {
     for(int i=0;i<size;i++)
     {
@@ -237,10 +237,10 @@ void roundrobin(ProcessSched numbers[],int size)
                 cout << "Process " << running.pid << " - Start time: " << tick << endl;
             }
         }
-        if(running.timeremaining>=20)
+        if(running.timeremaining>=timeslice)
         {
-            tick+=20;
-            running.timeremaining=running.timeremaining-20;
+            tick+=timeslice;
+            running.timeremaining=running.timeremaining-timeslice;
         }
         else
         {
@@ -268,6 +268,8 @@ int main(int argc, char*argv[])
         processes[i].deadline=deadline;
         processes[i].pid=i;
     }
+    cout << "Enter time slice for round-robin:" << endl;
+    cin >> timeslice;
     // processes[0].arrival=0;
     // processes[0].execution=40;
     // processes[0].deadline=200;
@@ -290,6 +292,6 @@ int main(int argc, char*argv[])
     sort(processes,processes+size,arrivalsort);
     fcfs(processes,size);
     sjf(processes,size);
-    edf(processes,size);
+    edf(processes,size,timeslice);
     roundrobin(processes,size);
 }
